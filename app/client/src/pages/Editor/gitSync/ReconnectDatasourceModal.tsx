@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Dialog from "components/ads/DialogComponent";
 
 import {
-  getOrganizationIdForImport,
   getImportedApplication,
   getIsDatasourceConfigForImportFetched,
+  getOrganizationIdForImport,
   getUserApplicationsOrgsList,
 } from "selectors/applicationSelectors";
 
 import { useDispatch, useSelector } from "react-redux";
-import { useCallback } from "react";
 import TabMenu from "./Menu";
 import { Classes, MENU_HEIGHT } from "./constants";
 import Icon, { IconSize } from "components/ads/Icon";
@@ -39,16 +38,16 @@ import {
   getUnconfiguredDatasources,
 } from "selectors/entitiesSelector";
 import {
+  initDatasourceConnectionDuringImportRequest,
   resetDatasourceConfigForImportFetchedFlag,
   setIsReconnectingDatasourcesModalOpen,
+  setOrgIdForImport,
 } from "actions/applicationActions";
 import { Datasource } from "entities/Datasource";
-import { initDatasourceConnectionDuringImportRequest } from "actions/applicationActions";
 import { DATASOURCE_DB_FORM } from "constants/forms";
 import { initialize } from "redux-form";
 import TooltipComponent from "components/ads/Tooltip";
 import { BUILDER_PAGE_URL } from "constants/routes";
-import { setOrgIdForImport } from "actions/applicationActions";
 import DatasourceForm from "../DataSourceEditor";
 import AnalyticsUtil from "utils/AnalyticsUtil";
 import { useQuery } from "../utils";
@@ -121,6 +120,7 @@ const ContentWrapper = styled.div`
 
     .t--collapse-section-container {
       width: 816px;
+
       & > div {
         color: ${Colors.BLACK};
       }
@@ -216,9 +216,11 @@ const TooltipWrapper = styled.div`
 const DBFormWrapper = styled.div`
   padding: 10px;
   width: calc(100% - 206px);
+
   div[class^="RestAPIDatasourceForm__RestApiForm-"] {
     padding-top: 0px;
   }
+
   .t--delete-datasource {
     display: none;
   }
@@ -238,6 +240,15 @@ function TooltipContent() {
         {createMessage(SKIP_TO_APPLICATION_TOOLTIP_DESCRIPTION)}
       </Text>
     </TooltipWrapper>
+  );
+}
+
+function SuccessMessages() {
+  return (
+    <Section className="t--message-container">
+      <Message>{createMessage(RECONNECT_DATASOURCE_SUCCESS_MESSAGE1)}</Message>
+      <Message>{createMessage(RECONNECT_DATASOURCE_SUCCESS_MESSAGE2)}</Message>
+    </Section>
   );
 }
 
@@ -342,15 +353,14 @@ function ReconnectDatasourceModal() {
   }, [isConfigFetched, selectedDatasourceId, queryIsImport]);
 
   useEffect(() => {
-    if (selectedDatasourceId) {
-      const selectedDatasourceConfig = datasources.find(
-        (datasource: Datasource) => datasource.id === selectedDatasourceId,
+    const id = selectedDatasourceId;
+    if (id) {
+      const config = datasources.find(
+        (datasource: Datasource) => datasource.id === id,
       );
-      if (selectedDatasourceConfig && !selectedDatasourceConfig.isConfigured) {
-        const data =
-          selectedDatasourceId in datasourceDrafts
-            ? datasourceDrafts[selectedDatasourceId]
-            : selectedDatasourceConfig;
+      const notConfigured = config && !config.isConfigured;
+      if (notConfigured) {
+        const data = id in datasourceDrafts ? datasourceDrafts[id] : config;
 
         dispatch(initialize(DATASOURCE_DB_FORM, _.omit(data, ["name"])));
       }
@@ -388,15 +398,45 @@ function ReconnectDatasourceModal() {
     }
   }, [pageId, appId]);
 
-  // redirecting if all are configured
+  // checking of full configured
   useEffect(() => {
-    if (
-      appURL &&
-      datasources.filter((ds: Datasource) => !ds.isConfigured).length < 1
-    ) {
+    const id = selectedDatasourceId;
+    const pending = datasources.filter((ds: Datasource) => !ds.isConfigured);
+    if (pending.length > 0) {
+      let next: Datasource | undefined = undefined;
+      if (id) {
+        const index = datasources.findIndex((ds: Datasource) => ds.id === id);
+        next = datasources
+          .slice(index + 1)
+          .find((ds: Datasource) => !ds.isConfigured);
+      }
+      next = next || pending[0];
+      setSelectedDatasourceId(next.id);
+      setDatasource(next);
+    } else if (appURL) {
       window.open(appURL, "_self");
     }
-  }, [appURL, datasources]);
+  }, [datasources, appURL]);
+
+  const mappedDataSources = datasources.map((ds: Datasource) => {
+    return (
+      <ListItemWrapper
+        ds={ds}
+        key={ds.id}
+        onClick={onSelectDatasource}
+        plugin={{
+          name: pluginNames[ds.pluginId],
+          image: pluginImages[ds.pluginId],
+        }}
+        selected={ds.id === selectedDatasourceId}
+      />
+    );
+  });
+
+  const shouldShowDBForm =
+    isConfigFetched && !isLoading && !datasouce?.isConfigured;
+  const shouldShowSuccessMessages = datasouce && datasouce.isConfigured;
+
   return (
     <>
       <Dialog
@@ -428,23 +468,8 @@ function ReconnectDatasourceModal() {
               </Text>
             </Section>
             <ContentWrapper>
-              <ListContainer>
-                {datasources.map((ds: Datasource) => {
-                  return (
-                    <ListItemWrapper
-                      ds={ds}
-                      key={ds.id}
-                      onClick={onSelectDatasource}
-                      plugin={{
-                        name: pluginNames[ds.pluginId],
-                        image: pluginImages[ds.pluginId],
-                      }}
-                      selected={ds.id === selectedDatasourceId}
-                    />
-                  );
-                })}
-              </ListContainer>
-              {isConfigFetched && !isLoading && !datasouce?.isConfigured && (
+              <ListContainer>{mappedDataSources}</ListContainer>
+              {shouldShowDBForm && (
                 <DBFormWrapper>
                   <DatasourceForm
                     applicationId={appId}
@@ -454,16 +479,7 @@ function ReconnectDatasourceModal() {
                   />
                 </DBFormWrapper>
               )}
-              {datasouce && datasouce.isConfigured && (
-                <Section className="t--message-container">
-                  <Message>
-                    {createMessage(RECONNECT_DATASOURCE_SUCCESS_MESSAGE1)}
-                  </Message>
-                  <Message>
-                    {createMessage(RECONNECT_DATASOURCE_SUCCESS_MESSAGE2)}
-                  </Message>
-                </Section>
-              )}
+              {shouldShowSuccessMessages && SuccessMessages()}
             </ContentWrapper>
           </BodyContainer>
           <SkipToAppButtonWrapper>
