@@ -1391,7 +1391,7 @@ public class GitServiceTest {
                 })
                 .verifyComplete();
     }
-    
+
     @Test
     @WithUserDetails(value = "api_user")
     public void pullChanges_FileSystemAccessError_throwError() throws IOException, GitAPIException {
