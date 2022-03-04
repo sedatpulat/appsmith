@@ -125,9 +125,9 @@ function QuickActionButton({
 const getPullBtnStatus = (gitStatus: any, pullFailed: boolean) => {
   const { behindCount, isClean } = gitStatus || {};
   let message = createMessage(NO_COMMITS_TO_PULL);
-  let disabled = behindCount === 0;
+  // let disabled = behindCount === 0;
   if (!isClean) {
-    disabled = true;
+    // disabled = true;
     message = createMessage(CANNOT_PULL_WITH_LOCAL_UNCOMMITTED_CHANGES);
   } else if (pullFailed) {
     message = createMessage(CONFLICTS_FOUND);
@@ -136,7 +136,7 @@ const getPullBtnStatus = (gitStatus: any, pullFailed: boolean) => {
   }
 
   return {
-    disabled,
+    disabled: false,
     message,
   };
 };
