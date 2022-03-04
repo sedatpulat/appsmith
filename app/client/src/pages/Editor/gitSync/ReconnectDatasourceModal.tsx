@@ -54,6 +54,8 @@ import { useQuery } from "../utils";
 import ListItemWrapper from "./components/DatasourceListItem";
 import { getDefaultPageId } from "sagas/ApplicationSagas";
 import { ReduxActionTypes } from "constants/ReduxActionConstants";
+import { Toaster, Variant } from "components/ads";
+import ThreeDotLoading from "components/designSystems/appsmith/header/ThreeDotsLoading";
 
 const Container = styled.div`
   height: 765px;
@@ -153,6 +155,14 @@ const ContentWrapper = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+  .t--datasource-spiner {
+    width: 40px;
+    margin: auto;
+    & > div {
+      width: 12px;
+      height: 12px;
+    }
   }
 `;
 
@@ -277,7 +287,35 @@ function ReconnectDatasourceModal() {
   const [pageId, setPageId] = useState<string | null>(queryPageId);
   const [appId, setAppId] = useState<string | null>(queryAppId);
   const [appURL, setAppURL] = useState("");
-  const [datasouce, setDatasource] = useState<Datasource | null>(null);
+  const [datasource, setDatasource] = useState<Datasource | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const isConfigFetched = useSelector(getIsDatasourceConfigForImportFetched);
+  const importedApplication = useSelector(getImportedApplication);
+  const menuOptions = [
+    {
+      key: "RECONNECT_DATASOURCES",
+      title: "Reconnect Datasources",
+    },
+  ];
+
+  const handleClose = useCallback(() => {
+    dispatch(setIsReconnectingDatasourcesModalOpen({ isOpen: false }));
+    dispatch(setOrgIdForImport(""));
+    dispatch(resetDatasourceConfigForImportFetchedFlag());
+    setSelectedDatasourceId("");
+  }, [dispatch, setIsReconnectingDatasourcesModalOpen, isModalOpen]);
+
+  const onSelectDatasource = useCallback((ds: Datasource) => {
+    setSelectedDatasourceId(ds.id);
+    setDatasource(ds);
+    AnalyticsUtil.logEvent("RECONNECTING_DATASOURCE_ITEM_CLICK", {
+      id: ds.id,
+      name: ds.name,
+      pluginName: pluginNames[ds.id],
+      isConfigured: ds.isConfigured,
+    });
+  }, []);
 
   // should open reconnect datasource modal
   useEffect(() => {
@@ -311,8 +349,6 @@ function ReconnectDatasourceModal() {
     }
   }, [userOrgs, queryIsImport]);
 
-  const isConfigFetched = useSelector(getIsDatasourceConfigForImportFetched);
-
   // todo uncomment this to fetch datasource config
   useEffect(() => {
     if (isModalOpen && organizationId) {
@@ -322,23 +358,9 @@ function ReconnectDatasourceModal() {
     }
   }, [organizationId, isModalOpen]);
 
-  const handleClose = useCallback(() => {
-    dispatch(setIsReconnectingDatasourcesModalOpen({ isOpen: false }));
-    dispatch(setOrgIdForImport(""));
-    dispatch(resetDatasourceConfigForImportFetchedFlag());
-    setSelectedDatasourceId("");
-  }, [dispatch, setIsReconnectingDatasourcesModalOpen, isModalOpen]);
-
-  const onSelectDatasource = useCallback((ds: Datasource) => {
-    setSelectedDatasourceId(ds.id);
-    setDatasource(ds);
-    AnalyticsUtil.logEvent("RECONNECTING_DATASOURCE_ITEM_CLICK", {
-      id: ds.id,
-      name: ds.name,
-      pluginName: pluginNames[ds.id],
-      isConfigured: ds.isConfigured,
-    });
-  }, []);
+  useEffect(() => {
+    setLoading(!isConfigFetched || isLoading);
+  }, [isConfigFetched, isLoading]);
 
   useEffect(() => {
     if (
@@ -367,14 +389,6 @@ function ReconnectDatasourceModal() {
     }
   }, [selectedDatasourceId]);
 
-  const menuOptions = [
-    {
-      key: "RECONNECT_DATASOURCES",
-      title: "Reconnect Datasources",
-    },
-  ];
-
-  const importedApplication = useSelector(getImportedApplication);
   useEffect(() => {
     if (!queryIsImport) {
       const defaultPage = importedApplication?.pages?.find(
