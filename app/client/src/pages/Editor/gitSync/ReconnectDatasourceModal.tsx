@@ -488,7 +488,9 @@ function ReconnectDatasourceModal() {
             </Section>
             <ContentWrapper>
               <ListContainer>{mappedDataSources}</ListContainer>
-              {loading && <ThreeDotLoading className="t--datasource-spiner" />}
+              {loading && !shouldShowSuccessMessages && (
+                <ThreeDotLoading className="t--datasource-spiner" />
+              )}
               {shouldShowDBForm && (
                 <DBFormWrapper>
                   <DatasourceForm
