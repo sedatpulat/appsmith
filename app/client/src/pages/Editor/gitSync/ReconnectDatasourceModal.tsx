@@ -55,6 +55,8 @@ import { useQuery } from "../utils";
 import ListItemWrapper from "./components/DatasourceListItem";
 import { getDefaultPageId } from "sagas/ApplicationSagas";
 import { ReduxActionTypes } from "constants/ReduxActionConstants";
+import { Toaster, Variant } from "components/ads";
+import ThreeDotLoading from "components/designSystems/appsmith/header/ThreeDotsLoading";
 
 const Container = styled.div`
   height: 765px;
@@ -153,6 +155,14 @@ const ContentWrapper = styled.div`
     display: flex;
     flex-direction: column;
     justify-content: center;
+  }
+  .t--datasource-spiner {
+    width: 40px;
+    margin: auto;
+    & > div {
+      width: 12px;
+      height: 12px;
+    }
   }
 `;
 
@@ -266,7 +276,35 @@ function ReconnectDatasourceModal() {
   const [pageId, setPageId] = useState<string | null>(queryPageId);
   const [appId, setAppId] = useState<string | null>(queryAppId);
   const [appURL, setAppURL] = useState("");
-  const [datasouce, setDatasource] = useState<Datasource | null>(null);
+  const [datasource, setDatasource] = useState<Datasource | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const isConfigFetched = useSelector(getIsDatasourceConfigForImportFetched);
+  const importedApplication = useSelector(getImportedApplication);
+  const menuOptions = [
+    {
+      key: "RECONNECT_DATASOURCES",
+      title: "Reconnect Datasources",
+    },
+  ];
+
+  const handleClose = useCallback(() => {
+    dispatch(setIsReconnectingDatasourcesModalOpen({ isOpen: false }));
+    dispatch(setOrgIdForImport(""));
+    dispatch(resetDatasourceConfigForImportFetchedFlag());
+    setSelectedDatasourceId("");
+  }, [dispatch, setIsReconnectingDatasourcesModalOpen, isModalOpen]);
+
+  const onSelectDatasource = useCallback((ds: Datasource) => {
+    setSelectedDatasourceId(ds.id);
+    setDatasource(ds);
+    AnalyticsUtil.logEvent("RECONNECTING_DATASOURCE_ITEM_CLICK", {
+      id: ds.id,
+      name: ds.name,
+      pluginName: pluginNames[ds.id],
+      isConfigured: ds.isConfigured,
+    });
+  }, []);
 
   // should open reconnect datasource modal
   useEffect(() => {
@@ -300,8 +338,6 @@ function ReconnectDatasourceModal() {
     }
   }, [userOrgs, queryIsImport]);
 
-  const isConfigFetched = useSelector(getIsDatasourceConfigForImportFetched);
-
   // todo uncomment this to fetch datasource config
   useEffect(() => {
     if (isModalOpen && organizationId) {
@@ -311,23 +347,9 @@ function ReconnectDatasourceModal() {
     }
   }, [organizationId, isModalOpen]);
 
-  const handleClose = useCallback(() => {
-    dispatch(setIsReconnectingDatasourcesModalOpen({ isOpen: false }));
-    dispatch(setOrgIdForImport(""));
-    dispatch(resetDatasourceConfigForImportFetchedFlag());
-    setSelectedDatasourceId("");
-  }, [dispatch, setIsReconnectingDatasourcesModalOpen, isModalOpen]);
-
-  const onSelectDatasource = useCallback((ds: Datasource) => {
-    setSelectedDatasourceId(ds.id);
-    setDatasource(ds);
-    AnalyticsUtil.logEvent("RECONNECTING_DATASOURCE_ITEM_CLICK", {
-      id: ds.id,
-      name: ds.name,
-      pluginName: pluginNames[ds.id],
-      isConfigured: ds.isConfigured,
-    });
-  }, []);
+  useEffect(() => {
+    setLoading(!isConfigFetched || isLoading);
+  }, [isConfigFetched, isLoading]);
 
   useEffect(() => {
     if (
@@ -357,14 +379,6 @@ function ReconnectDatasourceModal() {
     }
   }, [selectedDatasourceId]);
 
-  const menuOptions = [
-    {
-      key: "RECONNECT_DATASOURCES",
-      title: "Reconnect Datasources",
-    },
-  ];
-
-  const importedApplication = useSelector(getImportedApplication);
   useEffect(() => {
     if (!queryIsImport) {
       const defaultPage = importedApplication?.pages?.find(
@@ -390,28 +404,40 @@ function ReconnectDatasourceModal() {
 
   // checking of full configured
   useEffect(() => {
-    const unconfiguredDSList = datasources.filter(
-      (ds: Datasource) => !ds.isConfigured,
-    );
-    if (unconfiguredDSList.length > 0) {
-      let nextDatasource: Datasource | undefined = undefined;
-      if (selectedDatasourceId) {
-        const selectedIndex = datasources.findIndex(
-          (ds: Datasource) => ds.id === selectedDatasourceId,
-        );
-        nextDatasource = datasources
-          .slice(selectedIndex + 1)
-          .find((ds: Datasource) => !ds.isConfigured);
+    if (isModalOpen && !isLoading) {
+      const unconfiguredDSList = datasources.filter(
+        (ds: Datasource) => !ds.isConfigured,
+      );
+      const selectedDatasource = datasources.find(
+        (ds: Datasource) => ds.id === selectedDatasourceId,
+      );
+      if (selectedDatasource && !selectedDatasource.isConfigured) {
+        return;
       }
-      if (!nextDatasource) {
-        nextDatasource = unconfiguredDSList[0];
+      if (unconfiguredDSList.length > 0) {
+        let nextDatasource: Datasource | undefined = undefined;
+        if (selectedDatasourceId) {
+          const selectedIndex = datasources.findIndex(
+            (ds: Datasource) => ds.id === selectedDatasourceId,
+          );
+          nextDatasource = datasources
+            .slice(selectedIndex + 1)
+            .find((ds: Datasource) => !ds.isConfigured);
+        }
+        if (!nextDatasource) {
+          nextDatasource = unconfiguredDSList[0];
+        }
+        setSelectedDatasourceId(nextDatasource.id);
+        setDatasource(nextDatasource);
+      } else if (appURL) {
+        Toaster.show({
+          text: "Fully configured datasources",
+          variant: Variant.success,
+        });
+        window.open(appURL, "_self");
       }
-      setSelectedDatasourceId(nextDatasource.id);
-      setDatasource(nextDatasource);
-    } else if (appURL) {
-      window.open(appURL, "_self");
     }
-  }, [datasources, appURL]);
+  }, [datasources, appURL, isModalOpen, isLoading]);
   return (
     <>
       <Dialog
@@ -459,7 +485,8 @@ function ReconnectDatasourceModal() {
                   );
                 })}
               </ListContainer>
-              {isConfigFetched && !isLoading && !datasouce?.isConfigured && (
+              {loading && <ThreeDotLoading className="t--datasource-spiner" />}
+              {!loading && !datasource?.isConfigured && (
                 <DBFormWrapper>
                   <DatasourceForm
                     applicationId={appId}
@@ -469,7 +496,7 @@ function ReconnectDatasourceModal() {
                   />
                 </DBFormWrapper>
               )}
-              {datasouce && datasouce.isConfigured && (
+              {!loading && datasource?.isConfigured && (
                 <Section className="t--message-container">
                   <Message>
                     {createMessage(RECONNECT_DATASOURCE_SUCCESS_MESSAGE1)}
