@@ -16,6 +16,8 @@ import {
   IMPORT_APP_FROM_GIT_TITLE,
   IMPORT_APPLICATION_MODAL_LABEL,
   IMPORT_APPLICATION_MODAL_TITLE,
+  UPLOADING_APPLICATION_MESSAGE,
+  UPLOADING_JSON,
 } from "@appsmith/constants/messages";
 import FilePickerV2 from "components/ads/FilePickerV2";
 import { Colors } from "constants/Colors";
@@ -29,6 +31,9 @@ import { ReduxActionTypes } from "constants/ReduxActionConstants";
 import Dialog from "../../components/ads/DialogComponent";
 import { Classes } from "@blueprintjs/core";
 import getFeatureFlags from "../../utils/featureFlags";
+import Statusbar, {
+  StatusbarWrapper,
+} from "pages/Editor/gitSync/components/Statusbar";
 
 const StyledDialog = styled(Dialog)`
   && .${Classes.DIALOG_HEADER} {
@@ -73,6 +78,33 @@ const Row = styled.div`
   padding: 0;
   margin: 0;
   justify-content: space-between;
+  &.t-progress-wrapper {
+    flex-direction: column;
+    justify-content: center;
+    align-content: center;
+    height: 200px;
+    & > * {
+      margin: auto;
+      &.cs-text {
+        margin-top: ${(props) => `${props.theme.spaces[3]}`}px;
+        text-align: center;
+      }
+    }
+    .cs-icon {
+      border-radius: 50%;
+      background: ${Colors.GREY_200};
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      svg {
+        margin: auto;
+      }
+    }
+  }
+`;
+
+const Space = styled.div`
+  height: 90px;
 `;
 
 const FileImportCard = styled.div`
@@ -209,6 +241,7 @@ function ImportApplicationModal(props: ImportApplicationModalProps) {
     file: File;
     setProgress: SetProgress;
   } | null>(null);
+  const [importing, setImporting] = useState(false);
 
   const dispatch = useDispatch();
   const onGitImport = useCallback(() => {
@@ -233,6 +266,7 @@ function ImportApplicationModal(props: ImportApplicationModalProps) {
   const FileUploader = useCallback(
     async (file: File, setProgress: SetProgress) => {
       if (!!file) {
+        setImporting(true);
         setAppFileToBeUploaded({
           file,
           setProgress,
@@ -243,8 +277,9 @@ function ImportApplicationModal(props: ImportApplicationModalProps) {
             applicationFile: file,
           }),
         );
-        onClose && onClose();
+        // onClose && onClose();
       } else {
+        setImporting(false);
         setAppFileToBeUploaded(null);
       }
     },
@@ -256,6 +291,8 @@ function ImportApplicationModal(props: ImportApplicationModalProps) {
     if (appFileToBeUploaded && !importingApplication) {
       setAppFileToBeUploaded(null);
       // should open "Add credential" modal
+      setImporting(false);
+      onClose && onClose();
     }
   }, [appFileToBeUploaded, importingApplication]);
 
@@ -278,24 +315,48 @@ function ImportApplicationModal(props: ImportApplicationModalProps) {
     >
       <TextWrapper>
         <Text color={Colors.COD_GRAY} type={TextType.P1}>
-          {createMessage(IMPORT_APPLICATION_MODAL_LABEL)}
+          {createMessage(
+            importing ? UPLOADING_JSON : IMPORT_APPLICATION_MODAL_LABEL,
+          )}
         </Text>
       </TextWrapper>
-      <Row>
-        <FileImportCard>
-          <FilePickerV2
-            containerClickable
-            description={createMessage(IMPORT_APP_FROM_FILE_MESSAGE)}
-            fileType={FileType.JSON}
-            fileUploader={FileUploader}
-            iconFillColor={Colors.GREY_800}
-            onFileRemoved={onRemoveFile}
-            title={createMessage(IMPORT_APP_FROM_FILE_TITLE)}
-            uploadIcon="file-line"
+      {importing && (
+        <Row className="t-progress-wrapper">
+          <Icon
+            fillColor={Colors.GRAY_800}
+            name="file-line"
+            size={IconSize.XXXXL}
           />
-        </FileImportCard>
-        {isGitImportFeatureEnabled && <GitImportCard handler={onGitImport} />}
-      </Row>
+          <Text color={Colors.COD_GRAY} type={TextType.P1}>
+            {appFileToBeUploaded?.file.name} hello
+          </Text>
+          <StatusbarWrapper>
+            <Statusbar
+              completed={!!appFileToBeUploaded && !importingApplication}
+              message={createMessage(UPLOADING_APPLICATION_MESSAGE)}
+              period={2}
+            />
+          </StatusbarWrapper>
+          <Space />
+        </Row>
+      )}
+      {!importing && (
+        <Row>
+          <FileImportCard>
+            <FilePickerV2
+              containerClickable
+              description={createMessage(IMPORT_APP_FROM_FILE_MESSAGE)}
+              fileType={FileType.JSON}
+              fileUploader={FileUploader}
+              iconFillColor={Colors.GREY_800}
+              onFileRemoved={onRemoveFile}
+              title={createMessage(IMPORT_APP_FROM_FILE_TITLE)}
+              uploadIcon="file-line"
+            />
+          </FileImportCard>
+          {isGitImportFeatureEnabled && <GitImportCard handler={onGitImport} />}
+        </Row>
+      )}
     </StyledDialog>
   );
 }
