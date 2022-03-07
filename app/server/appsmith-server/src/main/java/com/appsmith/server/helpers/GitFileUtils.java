@@ -258,7 +258,6 @@ public class GitFileUtils {
         // Don't commit application name as while importing we are using the repoName as application name
         application.setName(null);
         application.setPublishedPages(null);
-        application.setSlug(null);
     }
 
     private void removeUnwantedFieldsFromDatasource(Datasource datasource) {
@@ -320,7 +319,10 @@ public class GitFileUtils {
                 TreeSet<DslActionDTO> sortedActions = new TreeSet<>(new CompareDslActionDTO());
                 sortedActions.addAll(layoutOnLoadActions.get(dslActionIndex));
                 sortedActions
-                        .forEach(actionDTO -> actionDTO.setDefaultActionId(null));
+                        .forEach(actionDTO -> {
+                            actionDTO.setDefaultActionId(null);
+                            actionDTO.setDefaultCollectionId(null);
+                        });
                 layoutOnLoadActions.set(dslActionIndex, sortedActions);
             }
         }
