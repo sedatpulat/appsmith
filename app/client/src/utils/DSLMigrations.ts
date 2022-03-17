@@ -25,7 +25,6 @@ import {
   migrateTableSanitizeColumnKeys,
   isSortableMigration,
   migrateTableWidgetIconButtonVariant,
-  migrateTableWidgetNumericColumnName,
 } from "./migrations/TableWidget";
 import { migrateTextStyleFromTextWidget } from "./migrations/TextWidgetReplaceTextStyle";
 import { DATA_BIND_REGEX_GLOBAL } from "constants/BindingsConstants";
@@ -40,12 +39,16 @@ import { ColumnProperties } from "widgets/TableWidget/component/Constants";
 import { migrateMenuButtonWidgetButtonProperties } from "./migrations/MenuButtonWidget";
 import { ButtonStyleTypes, ButtonVariantTypes } from "../components/constants";
 import { Colors } from "../constants/Colors";
-import { migrateResizableModalWidgetProperties } from "./migrations/ModalWidget";
+import {
+  migrateModalIconButtonWidget,
+  migrateResizableModalWidgetProperties,
+} from "./migrations/ModalWidget";
 import { migrateCheckboxGroupWidgetInlineProperty } from "./migrations/CheckboxGroupWidget";
 import { migrateMapWidgetIsClickedMarkerCentered } from "./migrations/MapWidget";
 import { DSLWidget } from "widgets/constants";
 import { migrateRecaptchaType } from "./migrations/ButtonWidgetMigrations";
 import { PrivateWidgets } from "entities/DataTree/dataTreeFactory";
+import { migratePhoneInputWidgetAllowFormatting } from "./migrations/PhoneInputWidgetMigrations";
 
 /**
  * adds logBlackList key for all list widget children
@@ -1039,7 +1042,20 @@ export const transformDSL = (
   }
 
   if (currentDSL.version === 50) {
-    currentDSL = migrateTableWidgetNumericColumnName(currentDSL);
+    /*
+     * We're skipping this to fix a bad table migration - migrateTableWidgetNumericColumnName
+     * it overwrites the computedValue of the table columns
+     */
+    currentDSL.version = 51;
+  }
+
+  if (currentDSL.version === 51) {
+    currentDSL = migratePhoneInputWidgetAllowFormatting(currentDSL);
+    currentDSL.version = 52;
+  }
+
+  if (currentDSL.version === 52) {
+    currentDSL = migrateModalIconButtonWidget(currentDSL);
     currentDSL.version = LATEST_PAGE_VERSION;
   }
 

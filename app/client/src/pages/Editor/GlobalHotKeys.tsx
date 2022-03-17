@@ -41,7 +41,10 @@ import { getAppMode } from "selectors/applicationSelectors";
 import { APP_MODE } from "entities/App";
 
 import { commentModeSelector } from "selectors/commentsSelectors";
-import { createMessage, SAVE_HOTKEY_TOASTER_MESSAGE } from "constants/messages";
+import {
+  createMessage,
+  SAVE_HOTKEY_TOASTER_MESSAGE,
+} from "@appsmith/constants/messages";
 import { setPreviewModeAction } from "actions/editorActions";
 import { previewModeSelector } from "selectors/editorSelectors";
 import { getExplorerPinned } from "selectors/explorerSelector";
@@ -141,7 +144,7 @@ class GlobalHotKeys extends React.Component<Props> {
         />
         <Hotkey
           allowInInput
-          combo="alt + shift + n"
+          combo="mod + plus"
           global
           label="Create New"
           onKeyDown={(e) =>

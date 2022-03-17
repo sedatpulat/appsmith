@@ -11,7 +11,7 @@ import {
   GIT_UPSTREAM_CHANGES,
   PULL_CHANGES,
   READ_DOCUMENTATION,
-} from "constants/messages";
+} from "@appsmith/constants/messages";
 import styled, { useTheme } from "styled-components";
 import TextInput from "components/ads/TextInput";
 import Button, { Size } from "components/ads/Button";
@@ -58,6 +58,7 @@ import { isMac } from "utils/helpers";
 import AnalyticsUtil from "utils/AnalyticsUtil";
 import { getApplicationLastDeployedAt } from "selectors/editorSelectors";
 import GIT_ERROR_CODES from "constants/GitErrorCodes";
+import useAutoGrow from "utils/hooks/useAutoGrow";
 
 const Section = styled.div`
   margin-bottom: ${(props) => props.theme.spaces[11]}px;
@@ -72,6 +73,7 @@ const SectionTitle = styled.div`
   ${(props) => getTypographyByKey(props, "p1")};
   color: ${Colors.CHARCOAL};
   display: inline-flex;
+
   & .branch {
     color: ${Colors.CRUSTA};
     width: 240px;
@@ -83,9 +85,11 @@ const SectionTitle = styled.div`
 
 const Container = styled.div`
   width: 100%;
+
   && ${LabelContainer} span {
     color: ${Colors.CHARCOAL};
   }
+
   .bp3-popover-target {
     width: fit-content;
   }
@@ -129,6 +133,9 @@ function Deploy() {
   const dispatch = useDispatch();
 
   const handleCommit = (doPush: boolean) => {
+    AnalyticsUtil.logEvent("GS_COMMIT_AND_PUSH_BUTTON_CLICK", {
+      source: "GIT_DEPLOY_MODAL",
+    });
     if (currentBranch) {
       dispatch(
         commitToRepoInit({
@@ -140,6 +147,9 @@ function Deploy() {
   };
 
   const handlePull = () => {
+    AnalyticsUtil.logEvent("GS_PULL_GIT_CLICK", {
+      source: "GIT_DEPLOY_MODAL",
+    });
     if (currentBranch) {
       dispatch(gitPullInit());
     }
@@ -184,6 +194,8 @@ function Deploy() {
 
   const gitConflictDocumentUrl = useSelector(getConflictFoundDocUrlDeploy);
 
+  const autogrowHeight = useAutoGrow(commitMessageDisplay, 37);
+
   return (
     <Container>
       <Title>{createMessage(DEPLOY_YOUR_APPLICATION)}</Title>
@@ -202,12 +214,18 @@ function Deploy() {
           }}
         >
           <TextInput
+            $padding="8px 14px"
             autoFocus
+            className="t--commit-comment-input"
             disabled={commitInputDisabled}
             fill
+            height={`${Math.min(autogrowHeight, 80)}px`}
             onChange={setCommitMessage}
+            placeholder={"Your commit message here"}
             ref={commitInputRef}
+            style={{ resize: "none" }}
             trimValue={false}
+            useTextArea
             value={commitMessageDisplay}
           />
         </SubmitWrapper>
@@ -241,7 +259,7 @@ function Deploy() {
         )}
         {pullRequired && !isConflicting && (
           <Button
-            className="t--commit-button"
+            className="t--pull-button"
             isLoading={isPullingProgress}
             onClick={handlePull}
             size={Size.large}

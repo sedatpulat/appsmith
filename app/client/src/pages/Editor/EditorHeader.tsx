@@ -72,7 +72,7 @@ import {
   RENAME_APPLICATION_TOOLTIP,
   SHARE_BUTTON_TOOLTIP,
   SHARE_BUTTON_TOOLTIP_WITH_USER,
-} from "constants/messages";
+} from "@appsmith/constants/messages";
 import { TOOLTIP_HOVER_ON_DELAY } from "constants/AppConstants";
 import { ReactComponent as MenuIcon } from "assets/icons/header/hamburger.svg";
 import { getExplorerPinned } from "selectors/explorerSelector";
@@ -82,7 +82,7 @@ import {
 } from "actions/explorerActions";
 import { ReactComponent as UnpinIcon } from "assets/icons/ads/double-arrow-right.svg";
 import { ReactComponent as PinIcon } from "assets/icons/ads/double-arrow-left.svg";
-import { isMac } from "utils/helpers";
+import { modText } from "utils/helpers";
 import Boxed from "./GuidedTour/Boxed";
 import EndTour from "./GuidedTour/EndTour";
 import { GUIDED_TOUR_STEPS } from "./GuidedTour/constants";
@@ -353,7 +353,7 @@ export function EditorHeader(props: EditorHeaderProps) {
                       : createMessage(CLOSE_ENTITY_EXPLORER_MESSAGE)}
                   </span>
                   <span className="ml-4 text-xs text-gray-300">
-                    {isMac() ? "Cmd" : "Ctrl"} + /
+                    {modText()} /
                   </span>
                 </div>
               }
@@ -457,7 +457,7 @@ export function EditorHeader(props: EditorHeaderProps) {
               canOutsideClickClose
               headerIcon={{
                 name: "right-arrow",
-                bgColor: "transparent",
+                bgColor: Colors.GEYSER_LIGHT,
               }}
               isOpen={showAppInviteUsersDialog}
               orgId={orgId}
