@@ -79,7 +79,7 @@ export const UrlOptionContainer = styled.div`
   }
 
   margin-bottom: ${(props) => `${props.theme.spaces[3]}px`};
-  margin-top: ${(props) => `${props.theme.spaces[11] - 1}px`};
+  margin-top: ${(props) => `${props.theme.spaces[11]}px`};
 `;
 
 const UrlContainer = styled.div`
@@ -399,8 +399,8 @@ function GitConnection({ isImport }: Props) {
             {createMessage(
               isImport ? IMPORT_FROM_GIT_REPOSITORY : CONNECT_TO_GIT,
             )}
+            <Subtitle>{createMessage(CONNECT_TO_GIT_SUBTITLE)}</Subtitle>
           </Title>
-          <Subtitle>{createMessage(CONNECT_TO_GIT_SUBTITLE)}</Subtitle>
         </StickyMenuWrapper>
         <UrlOptionContainer>
           <Text color={Colors.GREY_9} type={TextType.P1}>
