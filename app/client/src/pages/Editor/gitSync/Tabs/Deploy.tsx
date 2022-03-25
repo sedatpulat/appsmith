@@ -268,16 +268,25 @@ function Deploy() {
   const autogrowHeight = useAutoGrow(commitMessageDisplay, 37);
 
   const onDiscardInit = () => {
+    AnalyticsUtil.logEvent("GIT_DISCARD_WARNING", {
+      source: "GIT_DISCARD_BUTTON_PRESS_1",
+    });
     setShowDiscardWarning(true);
     setShouldDiscard(true);
   };
   const onDiscardChanges = () => {
+    AnalyticsUtil.logEvent("GIT_DISCARD", {
+      source: "GIT_DISCARD_BUTTON_PRESS_2",
+    });
     dispatch(discardChanges());
     setShowDiscardWarning(false);
     setShouldDiscard(true);
     setIsDiscarding(true);
   };
   const onCloseDiscardWarning = () => {
+    AnalyticsUtil.logEvent("GIT_DISCARD_CANCEL", {
+      source: "GIT_DISCARD_WARNING_BANNER_CLOSE_CLICK",
+    });
     setShowDiscardWarning(false);
     setShouldDiscard(false);
   };
